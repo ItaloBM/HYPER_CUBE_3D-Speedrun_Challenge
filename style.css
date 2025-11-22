@@ -9,7 +9,6 @@ body {
   user-select: none;
 }
 
-/* UI Layout */
 #ui-container {
   position: absolute;
   top: 0;
@@ -24,7 +23,6 @@ body {
   box-sizing: border-box;
 }
 
-/* Top Bar */
 .top-bar {
   display: flex;
   flex-direction: column;
@@ -49,7 +47,6 @@ body {
   margin-top: 5px;
 }
 
-/* Controls Area */
 .controls-area {
   display: flex;
   justify-content: space-between;
@@ -58,7 +55,6 @@ body {
   pointer-events: none;
 }
 
-/* Cards */
 .card {
   background: rgba(20, 20, 25, 0.85);
   backdrop-filter: blur(12px);
@@ -66,7 +62,7 @@ body {
   padding: 20px;
   border-radius: 16px;
   pointer-events: auto;
-  width: 260px;
+  width: 367px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 .card h3 {
@@ -79,7 +75,6 @@ body {
   font-size: 1.1rem;
 }
 
-/* Key Map */
 .key-map div {
   display: flex;
   gap: 8px;
@@ -88,6 +83,7 @@ body {
   font-size: 0.9rem;
   color: #ccc;
 }
+
 .key-map span {
   background: rgba(255, 255, 255, 0.1);
   padding: 4px 8px;
@@ -98,6 +94,7 @@ body {
   min-width: 20px;
   text-align: center;
 }
+
 .hint {
   font-size: 0.85rem;
   color: #888;
@@ -106,7 +103,6 @@ body {
   padding-top: 10px;
 }
 
-/* Button */
 .glow-btn {
   width: 100%;
   background: linear-gradient(135deg, #00d2ff, #007bff);
@@ -136,7 +132,6 @@ body {
   transform: scale(0.98);
 }
 
-/* Ranking List */
 #score-list {
   list-style: none;
   padding: 0;
@@ -155,7 +150,6 @@ body {
   text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
-/* Modal */
 .hidden {
   display: none !important;
 }
@@ -230,4 +224,43 @@ body {
   to {
     opacity: 1;
   }
+}
+
+.mode-selector {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    background: rgba(0,0,0,0.3);
+    padding: 5px;
+    border-radius: 20px;
+    pointer-events: auto;
+}
+
+.mode-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #aaa;
+    padding: 5px 15px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-family: "Rajdhani";
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.mode-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+.mode-btn.active {
+    background: #00d2ff;
+    color: black;
+    border-color: #00d2ff;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+}
+
+.mode-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }

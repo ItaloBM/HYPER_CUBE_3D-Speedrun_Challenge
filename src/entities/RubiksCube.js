@@ -2,38 +2,57 @@ import * as THREE from 'three';
 import { gsap } from 'https://unpkg.com/gsap@3.9.1/index.js';
 
 export class RubiksCube {
-    constructor(scene, onMoveComplete) {
+    constructor(scene, onMoveComplete, size = 3) {
         this.scene = scene;
+        this.size = size; 
         this.cubes = [];
         this.isAnimating = false;
         this.moveQueue = [];
         this.pivot = new THREE.Object3D();
         this.onMoveComplete = onMoveComplete;
         
-        this.scene.add(this.pivot);
+        this.group = new THREE.Group();
+        this.scene.add(this.group);
+        this.group.add(this.pivot);
+        
         this.init();
     }
 
     init() {
-        // Geometria Padrão (BoxGeometry)
-        const geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95);
-        const colors = [0xb90000, 0xff5900, 0xffffff, 0xffff00, 0x009b48, 0x0045ad]; // R, L, U, D, F, B
+        const geometry = new THREE.BoxGeometry(0.96, 0.96, 0.96);
+        
+        const colors = [0xb90000, 0xff5900, 0xffffff, 0xffff00, 0x009b48, 0x0045ad];
 
-        for (let x = -1; x <= 1; x++) {
-            for (let y = -1; y <= 1; y++) {
-                for (let z = -1; z <= 1; z++) {
+        const offset = (this.size - 1) / 2;
+
+        for (let x = 0; x < this.size; x++) {
+            for (let y = 0; y < this.size; y++) {
+                for (let z = 0; z < this.size; z++) {
+                    
+                    const adjustedX = x - offset;
+                    const adjustedY = y - offset;
+                    const adjustedZ = z - offset;
+
                     const materials = [];
-                    materials.push(new THREE.MeshStandardMaterial({ color: x === 1 ? colors[0] : 0x111111, roughness: 0.4 }));
-                    materials.push(new THREE.MeshStandardMaterial({ color: x === -1 ? colors[1] : 0x111111, roughness: 0.4 }));
-                    materials.push(new THREE.MeshStandardMaterial({ color: y === 1 ? colors[2] : 0x111111, roughness: 0.4 }));
-                    materials.push(new THREE.MeshStandardMaterial({ color: y === -1 ? colors[3] : 0x111111, roughness: 0.4 }));
-                    materials.push(new THREE.MeshStandardMaterial({ color: z === 1 ? colors[4] : 0x111111, roughness: 0.4 }));
-                    materials.push(new THREE.MeshStandardMaterial({ color: z === -1 ? colors[5] : 0x111111, roughness: 0.4 }));
+                    
+                    const blackMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+                    materials.push(adjustedX === offset ? new THREE.MeshBasicMaterial({ color: colors[0] }) : blackMat); // Right
+                    materials.push(adjustedX === -offset ? new THREE.MeshBasicMaterial({ color: colors[1] }) : blackMat); // Left
+                    materials.push(adjustedY === offset ? new THREE.MeshBasicMaterial({ color: colors[2] }) : blackMat); // Up
+                    materials.push(adjustedY === -offset ? new THREE.MeshBasicMaterial({ color: colors[3] }) : blackMat); // Down
+                    materials.push(adjustedZ === offset ? new THREE.MeshBasicMaterial({ color: colors[4] }) : blackMat); // Front
+                    materials.push(adjustedZ === -offset ? new THREE.MeshBasicMaterial({ color: colors[5] }) : blackMat); // Back
 
                     const mesh = new THREE.Mesh(geometry, materials);
-                    mesh.position.set(x, y, z);
-                    mesh.userData = { initialPos: new THREE.Vector3(x, y, z) };
-                    this.scene.add(mesh);
+                    mesh.position.set(adjustedX, adjustedY, adjustedZ);
+                    
+                    mesh.userData = { 
+                        initialPos: new THREE.Vector3(adjustedX, adjustedY, adjustedZ),
+                        isCubie: true
+                    };
+                    
+                    this.group.add(mesh);
                     this.cubes.push(mesh);
                 }
             }
@@ -53,20 +72,27 @@ export class RubiksCube {
 
         if (this.onMoveStart) this.onMoveStart();
 
-        const activeCubes = this.cubes.filter(c => Math.round(c.position[move.axis]) === move.slice);
+        const epsilon = 0.1;
+        const activeCubes = this.cubes.filter(c => Math.abs(c.position[move.axis] - move.slice) < epsilon);
 
         this.pivot.rotation.set(0, 0, 0);
         this.pivot.position.set(0, 0, 0);
+        
         activeCubes.forEach(c => this.pivot.attach(c));
 
         gsap.to(this.pivot.rotation, {
             [move.axis]: (Math.PI / 2) * move.dir,
             duration: move.duration,
+            ease: "power2.inOut",
             onComplete: () => {
                 this.pivot.updateMatrixWorld();
                 activeCubes.forEach(c => {
-                    this.scene.attach(c);
-                    c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+                    this.group.attach(c);
+                    c.position.set(
+                        Math.round(c.position.x * 2) / 2,
+                        Math.round(c.position.y * 2) / 2,
+                        Math.round(c.position.z * 2) / 2
+                    );
                     c.rotation.set(
                         Math.round(c.rotation.x / (Math.PI / 2)) * (Math.PI / 2),
                         Math.round(c.rotation.y / (Math.PI / 2)) * (Math.PI / 2),
@@ -76,18 +102,34 @@ export class RubiksCube {
                 });
                 this.isAnimating = false;
                 this.processQueue();
-                if (this.moveQueue.length === 0) this.onMoveComplete();
+                if (this.moveQueue.length === 0 && this.onMoveComplete) this.onMoveComplete();
             }
         });
     }
 
     checkSolved() {
+        const epsilon = 0.1;
         let solved = true;
         this.cubes.forEach(c => {
-            if (Math.round(c.position.x) !== c.userData.initialPos.x ||
-                Math.round(c.position.y) !== c.userData.initialPos.y ||
-                Math.round(c.position.z) !== c.userData.initialPos.z) solved = false;
+            if (Math.abs(c.position.x - c.userData.initialPos.x) > epsilon ||
+                Math.abs(c.position.y - c.userData.initialPos.y) > epsilon ||
+                Math.abs(c.position.z - c.userData.initialPos.z) > epsilon) {
+                solved = false;
+            }
         });
         return solved;
+    }
+    
+    dispose() {
+        this.scene.remove(this.group);
+        this.cubes.forEach(c => {
+            c.geometry.dispose();
+            if (Array.isArray(c.material)) {
+                c.material.forEach(m => m.dispose());
+            } else {
+                c.material.dispose();
+            }
+        });
+        this.cubes = [];
     }
 }
