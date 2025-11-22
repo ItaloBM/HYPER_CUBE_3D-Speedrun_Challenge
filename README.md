@@ -105,7 +105,7 @@ Depois, navegue até `http://localhost:8000` no seu navegador.
 
 Italo Butinholi Mendes - https://github.com/ItaloBM
 
-[Nome do Colega] - [GitHub do Colega]
+João Vitor Amorim Lopes - https://github.com/jvvlopes
 
 ---
 
