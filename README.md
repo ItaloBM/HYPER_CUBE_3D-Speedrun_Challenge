@@ -86,11 +86,11 @@ Nota: As rotações do teclado são relativas ao ângulo da câmera. O "Topo" do
 ## 🖥️ Interface e Ferramentas
 Na barra inferior de controles, você encontrará três funções principais:
 
-1. 🟦 EMBARALHAR (Shuffle): Inicia o jogo. Aplica algoritmos de embaralhamento aleatório e inicia o cronômetro.
+1. 🟦 EMBARALHAR (🔀): Inicia o jogo. Aplica algoritmos de embaralhamento aleatório e inicia o cronômetro.
 
-2. 🟥 RESETAR (Replay): Para o cronômetro imediatamente e restaura o cubo ao estado resolvido. Útil para desistir de uma tentativa ou reiniciar.
+2. 🟥 RESETAR (↩️): Para o cronômetro imediatamente e restaura o cubo ao estado resolvido. Útil para desistir de uma tentativa ou reiniciar.
 
-3. ⬛ SIMULAR (Troféu): Ferramenta de Debug. Resolve o cubo instantaneamente e gera um tempo fictício para testar a tela de vitória e o sistema de Ranking. O registro é salvo com a tag (SIMULAÇÃO).
+3. ⬛ SIMULAR (🏆): Ferramenta de Debug. Resolve o cubo instantaneamente e gera um tempo fictício para testar a tela de vitória e o sistema de Ranking. O registro é salvo com a tag (SIMULAÇÃO).
 
 ## 🛠 Instalação e Execução
 
