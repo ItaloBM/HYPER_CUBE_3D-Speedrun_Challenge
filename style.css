@@ -103,8 +103,16 @@ body {
   padding-top: 10px;
 }
 
+/* --- Botões e Grupo --- */
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    width: 100%;
+}
+
 .glow-btn {
-  width: 100%;
+  flex: 1; /* Ocupa espaço igual */
   background: linear-gradient(135deg, #00d2ff, #007bff);
   border: none;
   padding: 14px;
@@ -112,7 +120,6 @@ body {
   font-weight: 700;
   border-radius: 8px;
   cursor: pointer;
-  margin-top: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -123,6 +130,29 @@ body {
   letter-spacing: 1px;
   transition: all 0.2s;
 }
+
+/* Botão de Reset (Danger/Vermelho) */
+.glow-btn.danger {
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    border: 1px solid #ff416c;
+}
+.glow-btn.danger:hover {
+    box-shadow: 0 0 15px rgba(255, 65, 108, 0.5);
+}
+
+/* Botão de Debug (Cinza/Pequeno) */
+.glow-btn.secondary {
+    flex: 0;
+    min-width: 60px;
+    background: linear-gradient(135deg, #444, #222);
+    border: 1px solid #666;
+}
+.glow-btn.secondary:hover {
+    background: #555;
+    box-shadow: 0 0 15px rgba(255,255,255,0.2);
+    filter: brightness(1.2);
+}
+
 .glow-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 25px rgba(0, 210, 255, 0.6);
@@ -198,7 +228,7 @@ body {
   text-transform: uppercase;
   text-align: center;
   border-radius: 8px;
-  width: 120px;
+  width: 150px;
   font-family: "Rajdhani";
   outline: none;
 }
@@ -218,12 +248,8 @@ body {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .mode-selector {
@@ -258,9 +284,4 @@ body {
     color: black;
     border-color: #00d2ff;
     box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
-}
-
-.mode-btn.disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
 }

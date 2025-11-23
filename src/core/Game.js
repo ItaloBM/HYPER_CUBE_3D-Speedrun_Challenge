@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+// Importação correta para o ArcballControls na versão 0.160.0
+import { ArcballControls } from 'three/addons/controls/ArcballControls.js'; 
 import 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js';
 
 import { RubiksCube } from '../entities/RubiksCube.js';
@@ -16,6 +17,7 @@ export class Game {
         
         this.currentSize = 3;
         this.isGameRunning = false;
+        this.isSimulation = false; // Flag para diferenciar jogo real de teste
         this.startTime = 0;
         this.timerInterval = null;
         
@@ -25,19 +27,37 @@ export class Game {
         this.startMouse = { x: 0, y: 0 };
         this.intersectedBone = null;
 
+        // Elementos da UI
         this.timerEl = document.getElementById('timer');
         this.winModal = document.getElementById('win-modal');
-        this.btnScramble = document.getElementById('btn-scramble');
-        this.btnSave = document.getElementById('btn-save');
         this.scoreList = document.getElementById('score-list');
+        this.keyLegendEl = document.getElementById('key-legend');
+
+        // Configuração de Teclas por Tamanho do Cubo
+        this.keyConfigs = {
+            2: { 
+                cols: ['q', 'e'], 
+                rows: ['a', 'd'],
+                labels: { cols: "Q E", rows: "A D" }
+            },
+            3: { 
+                cols: ['q', 'w', 'e'], 
+                rows: ['a', 's', 'd'],
+                labels: { cols: "Q W E", rows: "A S D" }
+            },
+            4: { 
+                cols: ['q', 'w', 'e', 'r'], 
+                rows: ['a', 's', 'd', 'f'],
+                labels: { cols: "Q W E R", rows: "A S D F" }
+            }
+        };
     }
 
     start() {
         this.initThree();
-        this.initCube(3);
+        this.initCube(3); // Inicia com 3x3 por padrão
         this.initEvents();
         this.initMouseEvents();
-        this.createHUD();
         this.updateRankingUI();
         this.animate();
     }
@@ -55,16 +75,12 @@ export class Game {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(this.renderer.domElement);
 
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.enablePan = false;
-        this.controls.enableDamping = true;
+        // ArcballControls permite girar a câmera em todos os eixos livremente
+        this.controls = new ArcballControls(this.camera, this.renderer.domElement, this.scene);
+        this.controls.setGizmosVisible(false); 
+        this.controls.cursorZoom = true;
+        this.controls.enablePan = false; // Desabilita pan para evitar conflito com clique direito
         
-        this.controls.mouseButtons = {
-            LEFT: THREE.MOUSE.ROTATE,
-            MIDDLE: THREE.MOUSE.DOLLY,
-            RIGHT: null 
-        };
-
         this.scene.add(new THREE.AmbientLight(0xffffff, 1));
         
         window.addEventListener('resize', () => {
@@ -74,14 +90,15 @@ export class Game {
         });
     }
 
-    initCube(size = 3) {
+    initCube(size) {
         if (this.cube) this.cube.dispose();
         
         this.currentSize = size;
         this.cube = new RubiksCube(this.scene, () => this.checkWin(), size);
         this.cube.onMoveStart = () => this.audio.playClick();
         
-        this.updateHUD(size);
+        this.createHUD(size);
+        this.updateKeyLegend(size);
     }
 
     getDominantFace() {
@@ -90,64 +107,76 @@ export class Game {
         const absY = Math.abs(pos.y);
         const absZ = Math.abs(pos.z);
 
-        if (absY > absX && absY > absZ) {
-            return pos.y > 0 ? 'top' : 'bottom';
-        } else if (absX > absY && absX > absZ) {
-            return pos.x > 0 ? 'right' : 'left';
-        } else {
-            return pos.z > 0 ? 'front' : 'back';
-        }
+        if (absY > absX && absY > absZ) return pos.y > 0 ? 'top' : 'bottom';
+        if (absX > absY && absX > absZ) return pos.x > 0 ? 'right' : 'left';
+        return pos.z > 0 ? 'front' : 'back';
     }
 
-    createHUD() {
-        const style = document.createElement('style');
-        style.id = 'hud-style';
-        style.innerHTML = `
-            .hud-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; pointer-events: none; z-index: 10; }
-            .key-indicator { position: absolute; width: 35px; height: 35px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255,255,255,0.4); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; backdrop-filter: blur(2px); transition: 0.1s; }
-            .key-indicator.active { background: #00d2ff; border-color: #fff; transform: scale(1.1); box-shadow: 0 0 10px #00d2ff; color: #000; }
-            .key-q { top: -40px; left: 20%; transform: translateX(-50%); }
-            .key-w { top: -40px; left: 50%; transform: translateX(-50%); }
-            .key-e { top: -40px; left: 80%; transform: translateX(-50%); }
-            .key-a { left: -40px; top: 20%; transform: translateY(-50%); } 
-            .key-s { left: -40px; top: 50%; transform: translateY(-50%); }
-            .key-d { left: -40px; top: 80%; transform: translateY(-50%); }
-            .hidden-key { display: none; } 
-        `;
-        document.head.appendChild(style);
+    createHUD(size) {
+        const oldOverlay = document.querySelector('.hud-overlay');
+        if (oldOverlay) oldOverlay.remove();
+
+        const config = this.keyConfigs[size];
+        const allKeys = [...config.cols, ...config.rows];
 
         const overlay = document.createElement('div');
         overlay.className = 'hud-overlay';
-        const keys = ['Q','W','E','A','S','D'];
-        keys.forEach(k => {
+        overlay.style.cssText = `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; pointer-events: none; z-index: 10;`;
+
+        allKeys.forEach((k) => {
             const d = document.createElement('div');
-            d.className = `key-indicator key-${k.toLowerCase()}`;
-            d.id = `ind-${k}`;
-            d.innerText = k;
+            d.className = `key-indicator`;
+            d.id = `ind-${k.toUpperCase()}`;
+            d.innerText = k.toUpperCase();
+            d.style.cssText = `
+                position: absolute; width: 30px; height: 30px; 
+                background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255,255,255,0.4); 
+                color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; 
+                font-weight: bold; font-size: 14px; backdrop-filter: blur(2px); transition: 0.1s;
+            `;
+            
+            const isCol = config.cols.includes(k);
+            const array = isCol ? config.cols : config.rows;
+            const posIndex = array.indexOf(k);
+            const total = array.length;
+            const percent = 20 + (posIndex * (60 / (total - 1 || 1))); 
+            
+            if (isCol) {
+                d.style.top = '-40px';
+                d.style.left = `${percent}%`;
+            } else {
+                d.style.left = '-40px';
+                d.style.top = `${percent}%`;
+            }
+            
             overlay.appendChild(d);
         });
         document.body.appendChild(overlay);
     }
 
-    updateHUD(size) {
-        const w = document.getElementById('ind-W');
-        const s = document.getElementById('ind-S');
-        if (w && s) {
-            if (size === 2) {
-                w.classList.add('hidden-key');
-                s.classList.add('hidden-key');
-            } else {
-                w.classList.remove('hidden-key');
-                s.classList.remove('hidden-key');
-            }
-        }
+    updateKeyLegend(size) {
+        const config = this.keyConfigs[size];
+        this.keyLegendEl.innerHTML = `
+            <div>
+                ${config.cols.map(k=>`<span>${k.toUpperCase()}</span>`).join('')} Colunas
+            </div>
+            <div>
+                ${config.rows.map(k=>`<span>${k.toUpperCase()}</span>`).join('')} Linhas
+            </div>
+        `;
     }
 
     flashKey(k) {
         const el = document.getElementById(`ind-${k.toUpperCase()}`);
-        if (el && !el.classList.contains('hidden-key')) {
-            el.classList.add('active');
-            setTimeout(() => el.classList.remove('active'), 150);
+        if (el) {
+            el.style.background = '#00d2ff';
+            el.style.color = '#000';
+            el.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                el.style.background = 'rgba(255, 255, 255, 0.15)';
+                el.style.color = 'white';
+                el.style.transform = 'scale(1)';
+            }, 150);
         }
     }
 
@@ -155,85 +184,97 @@ export class Game {
         window.addEventListener('keydown', (e) => {
             if (this.cube.isAnimating && this.cube.moveQueue.length > 2) return;
             const k = e.key.toLowerCase();
-            if(['q','w','e','a','s','d'].includes(k)) this.flashKey(k);
+            const config = this.keyConfigs[this.currentSize];
 
-            const face = this.getDominantFace();
-            let axis, slice, dir;
-            const range = (this.currentSize - 1) / 2; 
-
-            // 1. TECLAS VERTICAIS (Q/W/E) - COLUNAS
-            if (['q', 'w', 'e'].includes(k)) {
-                if (this.currentSize === 2 && k === 'w') return;
-                
-                let rawSlice = 0;
-                if (k === 'q') rawSlice = -range; // Esquerda
-                if (k === 'w') rawSlice = 0;      // Meio
-                if (k === 'e') rawSlice = range;  // Direita
-
-                if (face === 'top' || face === 'bottom') {
-                    axis = 'z';
-                } else if (face === 'front' || face === 'back') {
-                    axis = 'x';
-                } else {
-                    axis = 'z'; 
-                }
-
-                let selectedSlice = rawSlice;
-                if (face === 'back' || face === 'right' || face === 'bottom') selectedSlice *= -1;
-                
-                slice = selectedSlice;
-                
-                dir = 1; 
-                if (face === 'back' || face === 'right') dir = -1;
-                if (face === 'bottom') dir = -1;
-            }
-
-            // 2. TECLAS HORIZONTAIS (A/S/D) - LINHAS
-            else if (['a', 's', 'd'].includes(k)) {
-                if (this.currentSize === 2 && k === 's') return;
-
-                let rawSlice = 0;
-                if (k === 'a') rawSlice = range;  // Topo
-                if (k === 's') rawSlice = 0;      // Meio
-                if (k === 'd') rawSlice = -range; // Baixo
-
-                if (face === 'top' || face === 'bottom') {
-                    axis = 'x';
-                    
-                    slice = rawSlice;
-                    if (face === 'bottom') slice *= -1; 
-                    
-                    dir = (face === 'top') ? 1 : -1; 
-                } else {
-                    axis = 'y';
-                    slice = rawSlice;
-                    dir = 1;
-                    if (face === 'back' || face === 'left') dir = -1;
-                }
-            }
-
-            if (axis) {
-                this.cube.queueMove(axis, slice, dir);
+            if ([...config.cols, ...config.rows].includes(k)) {
+                this.flashKey(k);
+                this.handleKeyMove(k, config);
             }
         });
 
-        this.btnScramble.addEventListener('click', () => this.scramble());
-        this.btnSave.addEventListener('click', () => this.saveScore());
+        // Botões da Interface
+        document.getElementById('btn-scramble').addEventListener('click', () => this.scramble());
+        document.getElementById('btn-save').addEventListener('click', () => this.saveScore());
         
-        const btn2 = document.getElementById('btn-2x2');
-        const btn3 = document.getElementById('btn-3x3');
+        // Novo: Botão Resetar
+        const btnReset = document.getElementById('btn-reset');
+        if(btnReset) btnReset.addEventListener('click', () => this.resetGame());
+
+        // Novo: Botão Simular
+        const btnSimulate = document.getElementById('btn-simulate-win');
+        if(btnSimulate) btnSimulate.addEventListener('click', () => this.simulateWin());
         
-        btn2.addEventListener('click', () => {
-            this.initCube(2);
-            btn2.classList.add('active');
-            btn3.classList.remove('active');
+        // Seletores de Modo
+        const modes = [2, 3, 4];
+        modes.forEach(size => {
+            const btn = document.getElementById(`btn-${size}x${size}`);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    modes.forEach(s => document.getElementById(`btn-${s}x${s}`).classList.remove('active'));
+                    btn.classList.add('active');
+                    this.initCube(size);
+                    this.resetGame(); // Reseta timer ao trocar de modo
+                });
+            }
         });
+    }
+
+    // Função de RESET (Novo Botão Vermelho)
+    resetGame() {
+        this.stopTimer();
+        this.isGameRunning = false;
+        this.isSimulation = false;
+        this.timerEl.innerText = "00:00:00";
+        this.winModal.classList.add('hidden');
+        // Apenas recria o cubo montado (sem lógica de vitória)
+        this.initCube(this.currentSize);
+    }
+
+    handleKeyMove(key, config) {
+        const face = this.getDominantFace();
+        let axis, slice, dir;
         
-        btn3.addEventListener('click', () => {
-            this.initCube(3);
-            btn3.classList.add('active');
-            btn2.classList.remove('active');
-        });
+        const getSliceFromIndex = (idx, total) => {
+            const offset = (total - 1) / 2;
+            return idx - offset;
+        };
+
+        if (config.cols.includes(key)) {
+            const idx = config.cols.indexOf(key);
+            let rawSlice = getSliceFromIndex(idx, this.currentSize);
+
+            if (face === 'top' || face === 'bottom') axis = 'z';
+            else if (face === 'front' || face === 'back') axis = 'x';
+            else axis = 'z'; 
+
+            let selectedSlice = rawSlice;
+            if (face === 'back' || face === 'right' || face === 'bottom') selectedSlice *= -1;
+            
+            slice = selectedSlice;
+            dir = 1; 
+            if (face === 'back' || face === 'right' || face === 'bottom') dir = -1;
+            
+        } else if (config.rows.includes(key)) {
+            const idx = config.rows.indexOf(key);
+            let rawSlice = getSliceFromIndex(idx, this.currentSize);
+             rawSlice *= -1; 
+
+            if (face === 'top' || face === 'bottom') {
+                axis = 'x';
+                slice = rawSlice;
+                if (face === 'bottom') slice *= -1; 
+                dir = (face === 'top') ? 1 : -1; 
+            } else {
+                axis = 'y';
+                slice = rawSlice;
+                dir = 1;
+                if (face === 'back' || face === 'left') dir = -1;
+            }
+        }
+
+        if (axis) {
+            this.cube.queueMove(axis, slice, dir);
+        }
     }
 
     initMouseEvents() {
@@ -241,7 +282,6 @@ export class Game {
 
         const onDown = (e) => {
             if (e.target.closest('button') || e.target.closest('input')) return;
-            
             if (e.button !== 2) return;
 
             this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -253,10 +293,12 @@ export class Game {
                 this.isDragging = true;
                 this.intersectedBone = intersects[0].object;
                 this.startMouse = { x: e.clientX, y: e.clientY };
+                this.controls.enabled = false; // Trava câmera ao interagir com cubo
             }
         };
 
         const onUp = (e) => {
+            this.controls.enabled = true; 
             if (e.button !== 2) return; 
 
             if (!this.isDragging || !this.intersectedBone) {
@@ -276,9 +318,7 @@ export class Game {
             const face = this.getDominantFace();
             
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                // --- MOVIMENTO HORIZONTAL DO MOUSE ---
                 const direction = deltaX > 0 ? -1 : 1;
-                
                 if (face === 'top' || face === 'bottom') {
                     this.cube.queueMove('x', Math.round(pos.x * 2)/2, direction);
                 } else {
@@ -286,15 +326,13 @@ export class Game {
                 }
             } else {
                 const direction = deltaY > 0 ? 1 : -1;
-
-                if (face === 'top' || face === 'bottom') {
-                    // Arrastar verticalmente no topo deve girar o eixo Z (fatias laterais na tela)
-                    this.cube.queueMove('z', Math.round(pos.z * 2)/2, direction);
-                } else if (face === 'front' || face === 'back') {
+                if (face === 'front' || face === 'back') {
                     this.cube.queueMove('x', Math.round(pos.x * 2)/2, direction);
-                } else {
+                } else if (face === 'left' || face === 'right') {
                     const zDir = (face === 'left') ? direction : -direction;
                     this.cube.queueMove('z', Math.round(pos.z * 2)/2, zDir);
+                } else {
+                    this.cube.queueMove('z', Math.round(pos.z * 2)/2, direction);
                 }
             }
 
@@ -324,29 +362,47 @@ export class Game {
 
     scramble() {
         if (this.cube.isAnimating) return;
-        this.stopTimer();
-        this.timerEl.innerText = "00:00:00";
-        this.winModal.classList.add('hidden');
+        
+        // Garante estado limpo antes de embaralhar
+        this.resetGame();
 
         const axes = ['x', 'y', 'z'];
+        const range = (this.currentSize - 1) / 2;
         const possibleSlices = [];
-        if (this.currentSize === 2) possibleSlices.push(-0.5, 0.5);
-        else possibleSlices.push(-1, 0, 1);
+        for(let i = -range; i <= range; i++) possibleSlices.push(i);
         
         const dirs = [1, -1];
+        const moves = 20 + (this.currentSize * 5); 
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < moves; i++) {
             const ax = axes[Math.floor(Math.random() * axes.length)];
             const sl = possibleSlices[Math.floor(Math.random() * possibleSlices.length)];
             const di = dirs[Math.floor(Math.random() * dirs.length)];
-            this.cube.queueMove(ax, sl, di, 0.05);
+            this.cube.queueMove(ax, sl, di, 0.05); 
         }
-        setTimeout(() => this.startTimer(), 1200);
+        setTimeout(() => this.startTimer(), moves * 60);
+    }
+
+    // Função para Simular Vitória (Botão Debug)
+    simulateWin() {
+        this.isSimulation = true;
+        this.initCube(this.currentSize); // Reseta visual
+        
+        // Se não tiver tempo corrido, inventa um
+        if (this.timerEl.innerText === "00:00:00") {
+            this.timerEl.innerText = "00:12:34"; 
+        }
+        
+        this.stopTimer();
+        document.getElementById('final-time').innerText = this.timerEl.innerText;
+        this.winModal.classList.remove('hidden');
+        if (window.confetti) window.confetti();
     }
 
     checkWin() {
         if (this.isGameRunning && (Date.now() - this.startTime > 2000) && this.cube.checkSolved()) {
             this.stopTimer();
+            this.isSimulation = false; // Confirma que é vitória real
             document.getElementById('final-time').innerText = this.timerEl.innerText;
             this.winModal.classList.remove('hidden');
             if (window.confetti) window.confetti();
@@ -354,11 +410,18 @@ export class Game {
     }
 
     saveScore() {
-        const name = document.getElementById('player-name').value || "UNK";
+        let name = document.getElementById('player-name').value || "UNK";
         const time = document.getElementById('final-time').innerText;
+        
+        // Adiciona tag se for simulação
+        if (this.isSimulation) {
+            name += " (SIMULAÇÃO)";
+        }
+
         StorageManager.saveScore(name, time);
         this.updateRankingUI();
         this.winModal.classList.add('hidden');
+        this.isSimulation = false;
     }
 
     updateRankingUI() {
@@ -370,7 +433,7 @@ export class Game {
 
     animate() {
         requestAnimationFrame(() => this.animate());
-        this.controls.update();
+        this.controls.update(); // Atualiza ArcballControls
         this.renderer.render(this.scene, this.camera);
     }
 }

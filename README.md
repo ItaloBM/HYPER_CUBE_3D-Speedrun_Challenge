@@ -1,6 +1,6 @@
 # 🧊 HYPER CUBE 3D - Speedrun Challenge
 
-Um simulador de Cubo Mágico de alta performance desenvolvido com **Three.js**, focado em experiência visual (UX), arquitetura de software limpa e competição.
+Um simulador de Cubo Mágico de alta performance desenvolvido com Three.js, focado em experiência visual (UX/UI Cyberpunk), arquitetura de software limpa e competição (Speedrun).
 
 ![Screenshot do Jogo](./image/HYPER%20CUBE%203D-Speedrun%20Challenge.png)
 
@@ -8,25 +8,27 @@ Um simulador de Cubo Mágico de alta performance desenvolvido com **Three.js**, 
 
 Este projeto foi desenvolvido como parte da avaliação da disciplina de **Desenvolvimento de Jogos Digitais** do curso de **Engenharia de Software**.
 
-**Objetivo:** O jogo desafia o usuário a resolver o cubo no menor tempo possível, aplicando conceitos avançados de computação gráfica e modularização de código.
+**Objetivo:** O jogo desafia o usuário a resolver puzzles de diferentes dificuldades (2x2, 3x3 e 4x4) no menor tempo possível, aplicando conceitos avançados de computação gráfica, álgebra linear (quaternions/matrizes) e modularização de código.
 
 ## ✨ Destaques Técnicos & Funcionalidades
 
 O projeto vai além do básico, implementando uma **arquitetura profissional** e recursos avançados:
 
-- **Arquitetura Modular (ES6):** O código foi desenvolvido e separado em módulos (`Core`, `Entities`, `Utils`) para garantir escalabilidade, facilidade de manutenção e _Separation of Concerns_.
-- **Renderização 3D:** Uso de **Three.js** com geometria otimizada.
-- **Áudio Sintético (Web Audio API):** Os efeitos sonoros são gerados matematicamente em tempo real (osciladores), eliminando arquivos de áudio pesados.
-- **Animações Fluidas:** Integração com **GSAP** para interpolação suave de movimentos.
-- **Ranking Local:** Persistência de dados via `localStorage` para salvar recordes.
-- **Import Maps:** Utilização de mapas de importação modernos para gerenciamento de dependências sem necessidade de Node.js/NPM.
+- **Múltiplos Puzzles:** Suporte completo para cubos 2x2, 3x3 e 4x4 com lógica de embaralhamento proporcional.
+- **Câmera Livre (Arcball):** Sistema de câmera 360° sem "Gimbal Lock", permitindo visualização de qualquer ângulo.
+- **Controles Inteligentes:** O sistema detecta a face dominante da câmera para adaptar os comandos do teclado (Cima/Baixo/Esquerda/Direita) intuitivamente.
+- **Modo Simulação (Debug):** Ferramenta para desenvolvedores testarem o sistema de Ranking sem precisar resolver o cubo manualmente.
+- **Arquitetura Modular (ES6):** Código separado em módulos (Core, Entities, Utils) garantindo Separation of Concerns.
+- **Áudio Sintético (Web Audio API):** Efeitos sonoros gerados matematicamente em tempo real (osciladores), sem arquivos de áudio pesados.
+- **Ranking Local:** Persistência de recordes via localStorage.
 
 ## 🚀 Tecnologias Utilizadas
 
-- **HTML5 / CSS3** (Design Responsivo e Clean UI)
+- **HTML5 / CSS3** - (Design Responsivo, Animações CSS e Estilo Neon)
 - **JavaScript (ES6 Modules)**
-- **Three.js** (R128)
-- **GSAP** (GreenSock Animation Platform)
+- **Three.js (r160)** - Versão atualizada para suporte a ArcballControls
+- **GSAP (GreenSock Animation Platform)** - Para animações fluidas de rotação
+- **Canvas Confetti** - Efeitos de partículas na vitória
 
 ## 📂 Estrutura do Projeto
 
@@ -34,7 +36,9 @@ O código foi organizado seguindo padrões de engenharia de software:
 
 ```text
 HYPERCUBE/
-│
+│── image/
+│   └── favicon.svg          
+│   └── HYPER CUBE 3D-Speedrun Challenge.png
 ├── src/                     # Código Fonte Modularizado
 │   ├── core/                # Núcleo do Jogo
 │   │   └── Game.js          # Gerenciador de Cena, Loop e Renderização
@@ -56,18 +60,39 @@ HYPERCUBE/
 ```
 
 ## 🎮 Comandos e Controles
+O jogo suporta interação híbrida (Mouse e Teclado).
 
-| Tecla / Ação            | Função                                      |
-| ----------------------- | ------------------------------------------- |
-| `Q`, `W`, `E`           | Selecionam o eixo de rotação (X, Y, Z)      |
-| `A`, `S`, `D`           | Rotacionam as fatias (camadas) selecionadas |
-| Mouse (arrastar)        | Rotaciona a câmera ao redor do cubo         |
-| Botão UI **EMBARALHAR** | Inicia o desafio e o timer                  |
+## 🖱️ Mouse
+
+|       Ação     |                      Função                                                      |
+|----------------|----------------------------------------------------------------------------------|
+| Botão Esquerdo | Rotaciona a Câmera livremente ao redor do cubo (360°).                           |
+| Botão Direito  | Interage com o Cubo. Clique e arraste uma peça para girar a face correspondente. |
+| Scroll         | Zoom In / Zoom Out.                                                              |
+
+## ⌨️ Teclado (Atalhos de Rotação)
+As teclas mudam dinamicamente dependendo do tamanho do cubo escolhido. O HUD na tela mostra as teclas ativas.
+
+|       Tamanho  |       Colunas (Verticais)    |           Linhas (Horizontais)
+|----------------|----------------------------------------------------------------------------------|
+|       2x2      |              Q, E            |               A, D                                |
+|       3x3      |             Q, W, E          |              A, S, D                              |
+|       4x4      |           Q, W, E, R         |             A, S, D, F                            |
+
+Nota: As rotações do teclado são relativas ao ângulo da câmera. O "Topo" do cubo é sempre a face voltada para cima na sua visão atual.
+
+## 🖥️ Interface e Ferramentas
+Na barra inferior de controles, você encontrará três funções principais:
+
+1. 🟦 EMBARALHAR (Shuffle): Inicia o jogo. Aplica algoritmos de embaralhamento aleatório e inicia o cronômetro.
+
+2. 🟥 RESETAR (Replay): Para o cronômetro imediatamente e restaura o cubo ao estado resolvido. Útil para desistir de uma tentativa ou reiniciar.
+
+3. ⬛ SIMULAR (Troféu): Ferramenta de Debug. Resolve o cubo instantaneamente e gera um tempo fictício para testar a tela de vitória e o sistema de Ranking. O registro é salvo com a tag (SIMULAÇÃO).
 
 ## 🛠 Instalação e Execução
 
-⚠️ Atenção: Como este projeto utiliza Módulos ES6, ele precisa ser executado em um servidor local (devido a políticas de segurança CORS dos navegadores).
-Ele não funcionará se você apenas clicar duas vezes no index.html.
+⚠️ Atenção: Como este projeto utiliza Módulos ES6 e Import Maps, ele precisa ser executado em um servidor local (devido a políticas de segurança CORS dos navegadores). Ele não funcionará se você apenas clicar duas vezes no index.html.
 
 ### Opção 1: VS Code (Recomendado)
 

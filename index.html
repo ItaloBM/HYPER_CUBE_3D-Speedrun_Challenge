@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyper Cube 3D - Challenge</title>
+    <title>Hyper Cube 3D - Speedrun</title>
     
+    <link rel="icon" type="image/svg+xml" href="image/favicon.svg">
+
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -19,22 +21,31 @@
             <div class="mode-selector">
                 <button id="btn-2x2" class="mode-btn">2x2</button>
                 <button id="btn-3x3" class="mode-btn active">3x3</button>
-                <button class="mode-btn disabled" title="Em breve">PYR</button> 
+                <button id="btn-4x4" class="mode-btn">4x4</button> 
             </div>
         </div>
 
         <div class="controls-area">
             <div class="card">
                 <h3>Comandos</h3>
-                <div class="key-map">
-                    <div><span>Q</span><span>W</span><span>E</span> Colunas Verticais</div>
-                    <div><span>A</span><span>S</span><span>D</span> Linhas Horizontais (Topo/Baixo)</div>
+                <div class="key-map" id="key-legend"></div>
+
+                <p class="hint">🖱️ Botão Direito: Arraste para girar faces</p>
+                <p class="hint">🖱️ Botão Esquerdo: Câmera Livre (360°)</p>
+                
+                <div class="btn-group">
+                    <button id="btn-scramble" class="glow-btn">
+                        <span class="material-icons">shuffle</span>
+                    </button>
+
+                    <button id="btn-reset" class="glow-btn danger" title="Resetar / Parar">
+                        <span class="material-icons">replay</span>
+                    </button>
+
+                    <button id="btn-simulate-win" class="glow-btn secondary" title="Simular Vitória">
+                        <span class="material-icons">emoji_events</span>
+                    </button>
                 </div>
-                <p class="hint">🖱️ Arraste o cubo para girar faces</p>
-                <p class="hint">🖱️ Arraste fora para girar câmera</p>
-                <button id="btn-scramble" class="glow-btn">
-                    <span class="material-icons">shuffle</span> Embaralhar
-                </button>
             </div>
 
             <div class="card">
@@ -50,7 +61,7 @@
             <p style="font-size: 1.5rem; color: #aaa;">Seu tempo:</p>
             <p style="font-size: 3rem; font-weight: bold; margin: 0; color: #ffd700;" id="final-time">00:00:00</p>
             <div class="input-group">
-                <input type="text" id="player-name" maxlength="3" placeholder="NOME">
+                <input type="text" id="player-name" maxlength="12" placeholder="SEU NOME">
                 <button id="btn-save">SALVAR</button>
             </div>
         </div>
@@ -59,8 +70,8 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
         }
     </script>
