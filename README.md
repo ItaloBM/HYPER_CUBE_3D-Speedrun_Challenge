@@ -2,7 +2,9 @@
 
 Um simulador de Cubo Mágico de alta performance desenvolvido com Three.js, focado em experiência visual (UX/UI Cyberpunk), arquitetura de software limpa e competição (Speedrun).
 
-![Screenshot do Jogo](./image/HYPER%20CUBE%203D-Speedrun%20Challenge.png)
+![Screenshot do Jogo](./image/HYPER_CUBE_3D-Speedrun_Challenge.png)
+
+## 🎮 Demo em: https://hypercube3d.netlify.app/
 
 ## 📖 Sobre o Projeto
 

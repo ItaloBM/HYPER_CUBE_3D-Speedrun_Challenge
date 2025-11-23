@@ -3,9 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyper Cube 3D - Speedrun</title>
     
+    <title>Hyper Cube 3D - Simulador de Cubo Mágico Speedrun Online</title>
+    
+    <meta name="description" content="Jogue Hyper Cube 3D gratuitamente. O melhor simulador de Cubo Mágico online com modos 2x2, 3x3 e 4x4. Treine speedrun, bata recordes e entre para o ranking global.">
+    
+    <meta name="keywords" content="cubo mágico, rubik's cube, speedrun, jogo online, 3d, three.js, simulador, puzzle, quebra-cabeça, 3x3, 4x4">
+    
+    <meta name="author" content="Italo Butinholi Mendes & João Vitor Amorim Lopes">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hypercube3d.netlify.app/"> <meta property="og:title" content="Hyper Cube 3D - Desafio Speedrun">
+    <meta property="og:description" content="Você consegue resolver o cubo em menos de 1 minuto? Tente agora no simulador 3D mais rápido da web!">
+    <meta property="og:image" content="https://hypercube3d.netlify.app/image/HYPER_CUBE_3D-Speedrun_Challenge.png"> <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Hyper Cube 3D - Speedrun Challenge">
+    <meta name="twitter:description" content="Simulador de Cubo Mágico de alta performance. Jogue agora no navegador!">
+    <meta name="twitter:image" content="https://hypercube3d.netlify.app/image/HYPER_CUBE_3D-Speedrun_Challenge.png">
+
     <link rel="icon" type="image/svg+xml" href="image/favicon.svg">
+    <link rel="apple-touch-icon" href="image/favicon.svg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
@@ -14,18 +34,18 @@
 <body>
 
     <div id="ui-container">
-        <div class="top-bar">
+        <header class="top-bar">
             <h1 class="logo">HYPER<span>CUBE</span></h1>
             <div id="timer">00:00:00</div>
             
-            <div class="mode-selector">
-                <button id="btn-2x2" class="mode-btn">2x2</button>
-                <button id="btn-3x3" class="mode-btn active">3x3</button>
-                <button id="btn-4x4" class="mode-btn">4x4</button> 
-            </div>
-        </div>
+            <nav class="mode-selector" aria-label="Seletor de Dificuldade">
+                <button id="btn-2x2" class="mode-btn" aria-label="Modo 2 por 2">2x2</button>
+                <button id="btn-3x3" class="mode-btn active" aria-label="Modo 3 por 3">3x3</button>
+                <button id="btn-4x4" class="mode-btn" aria-label="Modo 4 por 4">4x4</button> 
+            </nav>
+        </header>
 
-        <div class="controls-area">
+        <main class="controls-area">
             <div class="card">
                 <h3>Comandos</h3>
                 <div class="key-map" id="key-legend"></div>
@@ -34,15 +54,15 @@
                 <p class="hint">🖱️ Botão Esquerdo: Câmera Livre (360°)</p>
                 
                 <div class="btn-group">
-                    <button id="btn-scramble" class="glow-btn">
+                    <button id="btn-scramble" class="glow-btn" aria-label="Embaralhar Cubo">
                         <span class="material-icons">shuffle</span>
                     </button>
 
-                    <button id="btn-reset" class="glow-btn danger" title="Resetar / Parar">
+                    <button id="btn-reset" class="glow-btn danger" title="Resetar / Parar" aria-label="Resetar Jogo">
                         <span class="material-icons">replay</span>
                     </button>
 
-                    <button id="btn-simulate-win" class="glow-btn secondary" title="Simular Vitória">
+                    <button id="btn-simulate-win" class="glow-btn secondary" title="Simular Vitória" aria-label="Simular Vitória">
                         <span class="material-icons">emoji_events</span>
                     </button>
                 </div>
@@ -52,7 +72,7 @@
                 <h3>🏆 Top 5 Rank</h3>
                 <ul id="score-list"></ul>
             </div>
-        </div>
+        </main>
     </div>
 
     <div id="win-modal" class="modal hidden">
@@ -61,8 +81,8 @@
             <p style="font-size: 1.5rem; color: #aaa;">Seu tempo:</p>
             <p style="font-size: 3rem; font-weight: bold; margin: 0; color: #ffd700;" id="final-time">00:00:00</p>
             <div class="input-group">
-                <input type="text" id="player-name" maxlength="12" placeholder="SEU NOME">
-                <button id="btn-save">SALVAR</button>
+                <input type="text" id="player-name" maxlength="12" placeholder="SEU NOME" aria-label="Nome do Jogador">
+                <button id="btn-save" aria-label="Salvar Pontuação">SALVAR</button>
             </div>
         </div>
     </div>
