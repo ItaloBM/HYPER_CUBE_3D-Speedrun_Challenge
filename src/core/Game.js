@@ -362,7 +362,7 @@ export class Game {
                 axis = align.hAxis;
                 slice = roundToSlice(pos[axis], this.currentSize);
 
-                let visualDir = deltaX > 0 ? 1 : -1;
+                let visualDir = deltaX > 0 ? -1 : 1;
 
                 const camForward = new THREE.Vector3();
                 this.camera.getWorldDirection(camForward);
@@ -383,7 +383,7 @@ export class Game {
                 axis = align.vAxis;
                 slice = roundToSlice(pos[axis], this.currentSize);
 
-                let visualDir = deltaY > 0 ? 1 : -1;
+                let visualDir = deltaY > 0 ? -1 : 1;
 
                 const camForward = new THREE.Vector3();
                 this.camera.getWorldDirection(camForward);
