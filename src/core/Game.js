@@ -306,12 +306,15 @@ export class Game {
 
     initMouseEvents() {
         window.addEventListener('contextmenu', (e) => e.preventDefault());
+
         const onDown = (e) => {
-            if (e.target.closest('button') || e.target.closest('input')) return;
+            if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.modal-box')) return;
             if (e.button !== 2) return;
+
             this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             this.raycaster.setFromCamera(this.mouse, this.camera);
+            
             const intersects = this.raycaster.intersectObjects(this.cube.group.children, false);
             if (intersects.length > 0) {
                 this.isDragging = true;
@@ -324,29 +327,85 @@ export class Game {
         const onUp = (e) => {
             this.controls.enabled = true; 
             if (e.button !== 2) return; 
+
             if (!this.isDragging || !this.intersectedBone) {
                 this.isDragging = false;
+                this.intersectedBone = null;
                 return;
             }
+
             const deltaX = e.clientX - this.startMouse.x;
             const deltaY = e.clientY - this.startMouse.y;
+            
             if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-                this.isDragging = false; return;
+                this.isDragging = false;
+                this.intersectedBone = null;
+                return;
             }
+
             const pos = this.intersectedBone.position;
             const align = this.getVisualAlignment();
+            
+            const roundToSlice = (value, totalSize) => {
+                const step = 0.5;
+                const rounded = Math.round(value / step) * step;
+                
+                if (totalSize % 2 !== 0 && Math.abs(rounded) < 0.1) return 0;
+                return rounded;
+            };
+
+            let slice;
+            let axis;
+            let finalDir;
+            
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                const visualDir = deltaX > 0 ? 1 : -1;
-                const finalDir = visualDir * align.hSign;
-                this.cube.queueMove(align.hAxis, Math.round(pos[align.hAxis]), finalDir);
+                axis = align.hAxis;
+                slice = roundToSlice(pos[axis], this.currentSize);
+
+                let visualDir = deltaX > 0 ? 1 : -1;
+
+                const camForward = new THREE.Vector3();
+                this.camera.getWorldDirection(camForward);
+
+                const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
+
+                const camRight = new THREE.Vector3();
+                camRight.crossVectors(camUp, camForward).normalize();
+
+                const axisVec = new THREE.Vector3();
+                axisVec[axis] = 1;
+
+                if (axisVec.dot(camRight) < 0) visualDir *= -1;
+
+                finalDir = visualDir;
+
             } else {
-                const visualDir = deltaY > 0 ? 1 : -1;
-                const finalDir = visualDir * align.vSign;
-                this.cube.queueMove(align.vAxis, Math.round(pos[align.vAxis]), finalDir);
+                axis = align.vAxis;
+                slice = roundToSlice(pos[axis], this.currentSize);
+
+                let visualDir = deltaY > 0 ? 1 : -1;
+
+                const camForward = new THREE.Vector3();
+                this.camera.getWorldDirection(camForward);
+                camForward.multiplyScalar(-1); 
+
+                const axisVec = new THREE.Vector3();
+                axisVec[axis] = 1;
+
+                if (axisVec.dot(camForward) < 0) visualDir *= -1;
+
+                finalDir = visualDir;
             }
+
+            
+            if (axis) {
+                this.cube.queueMove(axis, slice, finalDir);
+            }
+
             this.isDragging = false;
             this.intersectedBone = null;
         };
+
         window.addEventListener('mousedown', onDown);
         window.addEventListener('mouseup', onUp);
     }
@@ -369,14 +428,12 @@ export class Game {
 
     scramble() {
         if (this.cube.isAnimating) return;
-        // Reseta qualquer estado anterior
         this.resetGame();
         
         const axes = ['x', 'y', 'z'];
         const range = (this.currentSize - 1) / 2;
         const possibleSlices = [];
         
-        // Corrige bug de fatias para cubos pares/ímpares
         if (this.currentSize % 2 === 0) {
             for(let i = -range; i <= range; i+=1) possibleSlices.push(i);
         } else {
@@ -384,37 +441,29 @@ export class Game {
         }
         
         const dirs = [1, -1];
-        // Quantidade de movimentos de embaralhamento
         const moves = 20 + (this.currentSize * 5); 
 
         for (let i = 0; i < moves; i++) {
             const ax = axes[Math.floor(Math.random() * axes.length)];
             const sl = possibleSlices[Math.floor(Math.random() * possibleSlices.length)];
             const di = dirs[Math.floor(Math.random() * dirs.length)];
-            // Movimento super rápido (0.05s)
             this.cube.queueMove(ax, sl, di, 0.05); 
         }
 
-        // Só inicia o timer e marca como "Embaralhado" APÓS a animação terminar
         setTimeout(() => {
-            this.isScrambled = true; // Agora o checkWin vai começar a funcionar
+            this.isScrambled = true;
             this.startTimer();
-        }, moves * 60); // 60ms é um pouco maior que 50ms (duration) para dar folga
+        }, moves * 60);
     }
 
-    // Verifica vitória automaticamente
     checkWin() {
-        // Só checa se o jogo estiver rodando E o cubo tiver sido embaralhado
-        // Adicionamos um delay mínimo de 1000ms para evitar win instantâneo no start
         if (this.isGameRunning && this.isScrambled && (Date.now() - this.startTime > 1000)) {
             if (this.cube.checkSolved()) {
                 this.stopTimer();
-                this.isScrambled = false; // Impede múltiplos disparos
+                this.isScrambled = false; 
                 
-                // Atualiza UI
                 document.getElementById('final-time').innerText = this.timerEl.innerText;
                 
-                // Mostra Modal e Confetes
                 this.winModal.classList.remove('hidden');
                 if (window.confetti) window.confetti();
             }
