@@ -16,7 +16,7 @@ export class Game {
         
         this.currentSize = 3;
         this.isGameRunning = false;
-        this.isScrambled = false; // Flag crucial para evitar vitória antes de começar
+        this.isScrambled = false; 
         this.startTime = 0;
         this.timerInterval = null;
         
@@ -41,7 +41,7 @@ export class Game {
 
     start() {
         this.initThree();
-        this.initCube(3); // Inicia padrão 3x3
+        this.initCube(3); 
         this.initEvents();
         this.initMouseEvents();
         this.updateRankingUI();
@@ -79,7 +79,6 @@ export class Game {
         if (this.cube) this.cube.dispose();
         
         this.currentSize = size;
-        // Passamos checkWin como callback para ser chamado após cada movimento
         this.cube = new RubiksCube(this.scene, () => this.checkWin(), size);
         this.cube.onMoveStart = () => this.audio.playClick();
         
@@ -88,7 +87,6 @@ export class Game {
     }
 
     getVisualAlignment() {
-        // Lógica de alinhamento visual para controles adaptativos
         const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
         const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
 
@@ -206,39 +204,31 @@ export class Game {
             }
         });
 
-        // --- CORREÇÃO AQUI: Verificamos se o botão existe antes de adicionar o evento ---
-
-        // Botão Embaralhar
         const btnScramble = document.getElementById('btn-scramble');
         if (btnScramble) {
             btnScramble.addEventListener('click', () => this.scramble());
         }
 
-        // Botão Reset
         const btnReset = document.getElementById('btn-reset');
         if (btnReset) {
             btnReset.addEventListener('click', () => this.resetGame());
         }
 
-        // Botão Simular Vitória (Debug) - Este era o provável causador do erro
         const btnSimulate = document.getElementById('btn-simulate-win');
         if (btnSimulate) {
             btnSimulate.addEventListener('click', () => this.debugWin());
         }
 
-        // Botão Salvar Rank
         const btnSave = document.getElementById('btn-save');
         if (btnSave) {
             btnSave.addEventListener('click', () => this.saveScore());
         }
 
-        // Botão Abrir Rank (se existir)
         const btnOpenRank = document.getElementById('btn-open-rank');
         if (btnOpenRank) {
             btnOpenRank.addEventListener('click', () => this.openModal());
         }
 
-        // Seletores de Modo (2x2, 3x3, 4x4)
         const modes = [2, 3, 4];
         modes.forEach(size => {
             const btn = document.getElementById(`btn-${size}x${size}`);
@@ -262,10 +252,9 @@ export class Game {
         this.initCube(this.currentSize);
     }
 
-    // Função de Debug para testar a vitória
     debugWin() {
         this.stopTimer();
-        this.timerEl.innerText = "00:59:99"; // Tempo falso
+        this.timerEl.innerText = "00:59:99"; 
         document.getElementById('final-time').innerText = this.timerEl.innerText;
         this.winModal.classList.remove('hidden');
         if (window.confetti) window.confetti();
@@ -343,63 +332,40 @@ export class Game {
                 return;
             }
 
-            const pos = this.intersectedBone.position;
             const align = this.getVisualAlignment();
             
             const roundToSlice = (value, totalSize) => {
                 const step = 0.5;
                 const rounded = Math.round(value / step) * step;
-                
                 if (totalSize % 2 !== 0 && Math.abs(rounded) < 0.1) return 0;
                 return rounded;
             };
 
-            let slice;
-            let axis;
-            let finalDir;
-            
+            let axisToRotate, moveDelta, screenAxisVector;
+
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                axis = align.hAxis;
-                slice = roundToSlice(pos[axis], this.currentSize);
-
-                let visualDir = deltaX > 0 ? -1 : 1;
-
-                const camForward = new THREE.Vector3();
-                this.camera.getWorldDirection(camForward);
-
-                const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
-
-                const camRight = new THREE.Vector3();
-                camRight.crossVectors(camUp, camForward).normalize();
-
-                const axisVec = new THREE.Vector3();
-                axisVec[axis] = 1;
-
-                if (axisVec.dot(camRight) < 0) visualDir *= -1;
-
-                finalDir = visualDir;
-
+                axisToRotate = align.hAxis; 
+                moveDelta = deltaX;
+                screenAxisVector = align.camRight;
             } else {
-                axis = align.vAxis;
-                slice = roundToSlice(pos[axis], this.currentSize);
-
-                let visualDir = deltaY > 0 ? -1 : 1;
-
-                const camForward = new THREE.Vector3();
-                this.camera.getWorldDirection(camForward);
-                camForward.multiplyScalar(-1); 
-
-                const axisVec = new THREE.Vector3();
-                axisVec[axis] = 1;
-
-                if (axisVec.dot(camForward) < 0) visualDir *= -1;
-
-                finalDir = visualDir;
+                axisToRotate = align.vAxis; 
+                moveDelta = -deltaY; 
+                screenAxisVector = align.camUp;
             }
 
+            const slice = roundToSlice(this.intersectedBone.position[axisToRotate], this.currentSize);
             
-            if (axis) {
-                this.cube.queueMove(axis, slice, finalDir);
+            const rotAxisVec = new THREE.Vector3();
+            rotAxisVec[axisToRotate] = 1;
+            const bonePos = this.intersectedBone.position.clone();
+            const tangent = new THREE.Vector3().crossVectors(rotAxisVec, bonePos);
+            const projectedTangent = tangent.dot(screenAxisVector);
+            
+            let finalDir = (moveDelta > 0 ? 1 : -1);
+            if (projectedTangent < 0) finalDir *= -1;
+
+            if (axisToRotate) {
+                this.cube.queueMove(axisToRotate, slice, finalDir);
             }
 
             this.isDragging = false;
