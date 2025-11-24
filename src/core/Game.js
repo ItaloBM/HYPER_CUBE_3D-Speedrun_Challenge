@@ -183,8 +183,10 @@ export class Game {
 
     initEvents() {
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !this.winModal.classList.contains('hidden')) {
-                this.closeModal();
+            if (!this.winModal.classList.contains('hidden')) {
+                if (e.key === 'Enter') {
+                    this.saveScore();
+                }
                 return;
             }
 
@@ -195,12 +197,6 @@ export class Game {
             if ([...config.cols, ...config.rows].includes(k)) {
                 this.flashKey(k);
                 this.handleKeyMove(k, config);
-            }
-        });
-
-        this.winModal.addEventListener('click', (e) => {
-            if (e.target === this.winModal) {
-                this.closeModal();
             }
         });
 
@@ -242,7 +238,7 @@ export class Game {
             }
         });
     }
-
+    
     resetGame() {
         this.stopTimer();
         this.isGameRunning = false;
