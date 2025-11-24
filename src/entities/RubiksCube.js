@@ -20,6 +20,7 @@ export class RubiksCube {
 
     init() {
         const geometry = new THREE.BoxGeometry(0.96, 0.96, 0.96);
+        // Cores: Direita, Esquerda, Cima, Baixo, Frente, Trás
         const colors = [0xb90000, 0xff5900, 0xffffff, 0xffff00, 0x009b48, 0x0045ad];
         const offset = (this.size - 1) / 2;
 
@@ -32,6 +33,8 @@ export class RubiksCube {
                     const materials = [];
                     const blackMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
+                    // A ordem dos materiais no Three.js BoxGeometry é: 
+                    // 0:Right(+x), 1:Left(-x), 2:Top(+y), 3:Bottom(-y), 4:Front(+z), 5:Back(-z)
                     materials.push(adjustedX === offset ? new THREE.MeshBasicMaterial({ color: colors[0] }) : blackMat);
                     materials.push(adjustedX === -offset ? new THREE.MeshBasicMaterial({ color: colors[1] }) : blackMat);
                     materials.push(adjustedY === offset ? new THREE.MeshBasicMaterial({ color: colors[2] }) : blackMat);
@@ -41,8 +44,11 @@ export class RubiksCube {
 
                     const mesh = new THREE.Mesh(geometry, materials);
                     mesh.position.set(adjustedX, adjustedY, adjustedZ);
+                    
+                    // Salvamos quais índices de material são coloridos para conferência posterior
                     mesh.userData = { 
-                        initialPos: new THREE.Vector3(adjustedX, adjustedY, adjustedZ)
+                        initialPos: new THREE.Vector3(adjustedX, adjustedY, adjustedZ),
+                        isCore: (Math.abs(adjustedX) < offset && Math.abs(adjustedY) < offset && Math.abs(adjustedZ) < offset)
                     };
                     
                     this.group.add(mesh);
@@ -93,28 +99,83 @@ export class RubiksCube {
                     c.updateMatrix();
                 });
                 this.isAnimating = false;
-                this.processQueue();
                 
+                // Dispara o evento de movimento completo para o Game.js verificar a vitória
                 if (this.moveQueue.length === 0 && this.onMoveComplete) {
                     this.onMoveComplete();
                 }
+                
+                this.processQueue();
             }
         });
     }
 
+    // Verifica se está resolvido baseado na uniformidade das cores das faces
+    // Isso permite que o cubo esteja resolvido em qualquer orientação (ex: Branco na frente)
     checkSolved() {
-        const epsilon = 1.5; 
-        const identity = new THREE.Quaternion();
+        const offset = (this.size - 1) / 2;
+        const epsilon = 0.1;
 
-        for (let c of this.cubes) {
-            if (c.position.distanceTo(c.userData.initialPos) > epsilon) {
-                return false;
-            }
+        // Definição das 6 faces do mundo: Eixo, Valor (+/- offset), e índice do material local esperado
+        // 0:Right, 1:Left, 2:Top, 3:Bottom, 4:Front, 5:Back
+        const faces = [
+            { axis: 'x', val: offset, name: 'Right' },
+            { axis: 'x', val: -offset, name: 'Left' },
+            { axis: 'y', val: offset, name: 'Top' },
+            { axis: 'y', val: -offset, name: 'Bottom' },
+            { axis: 'z', val: offset, name: 'Front' },
+            { axis: 'z', val: -offset, name: 'Back' }
+        ];
 
-            if (c.quaternion.angleTo(identity) > epsilon) {
-                return false;
+        // Vetores locais correspondentes aos índices de materiais do BoxGeometry
+        const localNormals = [
+            { vec: new THREE.Vector3(1, 0, 0), matIdx: 0 },  // Right
+            { vec: new THREE.Vector3(-1, 0, 0), matIdx: 1 }, // Left
+            { vec: new THREE.Vector3(0, 1, 0), matIdx: 2 },  // Top
+            { vec: new THREE.Vector3(0, -1, 0), matIdx: 3 }, // Bottom
+            { vec: new THREE.Vector3(0, 0, 1), matIdx: 4 },  // Front
+            { vec: new THREE.Vector3(0, 0, -1), matIdx: 5 }  // Back
+        ];
+
+        for (let face of faces) {
+            // 1. Pega todos os cubos que estão fisicamente nesta face do mundo
+            const faceCubies = this.cubes.filter(c => 
+                Math.abs(c.position[face.axis] - face.val) < epsilon
+            );
+
+            // Se não houver cubos (bug), retorna false
+            if (faceCubies.length === 0) return false;
+
+            // 2. Cria o vetor de direção do mundo para esta face (ex: 1,0,0)
+            const worldDir = new THREE.Vector3();
+            worldDir[face.axis] = Math.sign(face.val);
+
+            // Função auxiliar para descobrir a cor que este cubo está mostrando para worldDir
+            const getFaceColorHex = (cubie) => {
+                for (let ln of localNormals) {
+                    // Transforma a normal local do cubo para o espaço do mundo
+                    const worldNormal = ln.vec.clone().applyQuaternion(cubie.quaternion);
+                    // Se a normal aponta na mesma direção da face do mundo
+                    if (worldNormal.dot(worldDir) > 0.9) {
+                        return cubie.material[ln.matIdx].color.getHex();
+                    }
+                }
+                return null;
+            };
+
+            // 3. Pega a cor do primeiro cubo como referência
+            const referenceColor = getFaceColorHex(faceCubies[0]);
+            if (referenceColor === null) return false; // Algo errado com rotação
+
+            // 4. Verifica se TODOS os outros cubos nesta face têm a mesma cor
+            for (let i = 1; i < faceCubies.length; i++) {
+                const color = getFaceColorHex(faceCubies[i]);
+                if (color !== referenceColor) {
+                    return false; // Cores misturadas nesta face
+                }
             }
         }
+
         return true;
     }
     

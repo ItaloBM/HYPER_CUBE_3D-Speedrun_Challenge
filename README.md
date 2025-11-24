@@ -90,7 +90,6 @@ Na barra inferior de controles, você encontrará três funções principais:
 
 2. 🟥 RESETAR (↩️): Para o cronômetro imediatamente e restaura o cubo ao estado resolvido. Útil para desistir de uma tentativa ou reiniciar.
 
-3. ⬛ SIMULAR (🏆): Ferramenta de Debug. Resolve o cubo instantaneamente e gera um tempo fictício para testar a tela de vitória e o sistema de Ranking. O registro é salvo com a tag (SIMULAÇÃO).
 
 ## 🛠 Instalação e Execução
 

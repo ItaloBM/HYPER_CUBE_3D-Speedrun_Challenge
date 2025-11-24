@@ -16,7 +16,7 @@ export class Game {
         
         this.currentSize = 3;
         this.isGameRunning = false;
-        this.isScrambled = false;
+        this.isScrambled = false; // Flag crucial para evitar vitória antes de começar
         this.startTime = 0;
         this.timerInterval = null;
         
@@ -26,6 +26,7 @@ export class Game {
         this.startMouse = { x: 0, y: 0 };
         this.intersectedBone = null;
 
+        // UI Elements
         this.timerEl = document.getElementById('timer');
         this.winModal = document.getElementById('win-modal');
         this.scoreList = document.getElementById('score-list');
@@ -40,7 +41,7 @@ export class Game {
 
     start() {
         this.initThree();
-        this.initCube(3);
+        this.initCube(3); // Inicia padrão 3x3
         this.initEvents();
         this.initMouseEvents();
         this.updateRankingUI();
@@ -78,6 +79,7 @@ export class Game {
         if (this.cube) this.cube.dispose();
         
         this.currentSize = size;
+        // Passamos checkWin como callback para ser chamado após cada movimento
         this.cube = new RubiksCube(this.scene, () => this.checkWin(), size);
         this.cube.onMoveStart = () => this.audio.playClick();
         
@@ -86,6 +88,7 @@ export class Game {
     }
 
     getVisualAlignment() {
+        // Lógica de alinhamento visual para controles adaptativos
         const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
         const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
 
@@ -95,13 +98,8 @@ export class Game {
             { name: 'z', vec: new THREE.Vector3(0, 0, 1) }
         ];
 
-        let bestHorizontalAxis = 'y'; 
-        let maxDotUp = -1;
-        let hSign = 1;
-
-        let bestVerticalAxis = 'y';   
-        let maxDotRight = -1;
-        let vSign = 1;
+        let bestHorizontalAxis = 'y', maxDotUp = -1, hSign = 1;
+        let bestVerticalAxis = 'y', maxDotRight = -1, vSign = 1;
 
         axes.forEach(axis => {
             const dotUp = axis.vec.dot(camUp);
@@ -119,14 +117,7 @@ export class Game {
             }
         });
 
-        return {
-            hAxis: bestHorizontalAxis, 
-            hSign: hSign,              
-            vAxis: bestVerticalAxis,   
-            vSign: vSign,
-            camRight,
-            camUp
-        };
+        return { hAxis: bestHorizontalAxis, hSign, vAxis: bestVerticalAxis, vSign, camRight, camUp };
     }
 
     createHUD(size) {
@@ -165,7 +156,6 @@ export class Game {
                 d.style.left = '-40px';
                 d.style.top = `${percent}%`;
             }
-            
             overlay.appendChild(d);
         });
         document.body.appendChild(overlay);
@@ -174,12 +164,8 @@ export class Game {
     updateKeyLegend(size) {
         const config = this.keyConfigs[size];
         this.keyLegendEl.innerHTML = `
-            <div>
-                ${config.cols.map(k=>`<span>${k.toUpperCase()}</span>`).join('')} Colunas
-            </div>
-            <div>
-                ${config.rows.map(k=>`<span>${k.toUpperCase()}</span>`).join('')} Linhas
-            </div>
+            <div>${config.cols.map(k=>`<span>${k.toUpperCase()}</span>`).join('')} Colunas</div>
+            <div>${config.rows.map(k=>`<span>${k.toUpperCase()}</span>`).join('')} Linhas</div>
         `;
     }
 
@@ -194,13 +180,6 @@ export class Game {
                 el.style.color = 'white';
                 el.style.transform = 'scale(1)';
             }, 150);
-        }
-    }
-
-    openModal() {
-        if (this.winModal.classList.contains('hidden')) {
-            document.getElementById('final-time').innerText = this.timerEl.innerText;
-            this.winModal.classList.remove('hidden');
         }
     }
 
@@ -227,15 +206,39 @@ export class Game {
             }
         });
 
-        document.getElementById('btn-scramble').addEventListener('click', () => this.scramble());
-        document.getElementById('btn-save').addEventListener('click', () => this.saveScore());
-        
+        // --- CORREÇÃO AQUI: Verificamos se o botão existe antes de adicionar o evento ---
+
+        // Botão Embaralhar
+        const btnScramble = document.getElementById('btn-scramble');
+        if (btnScramble) {
+            btnScramble.addEventListener('click', () => this.scramble());
+        }
+
+        // Botão Reset
         const btnReset = document.getElementById('btn-reset');
-        if(btnReset) btnReset.addEventListener('click', () => this.resetGame());
+        if (btnReset) {
+            btnReset.addEventListener('click', () => this.resetGame());
+        }
 
+        // Botão Simular Vitória (Debug) - Este era o provável causador do erro
+        const btnSimulate = document.getElementById('btn-simulate-win');
+        if (btnSimulate) {
+            btnSimulate.addEventListener('click', () => this.debugWin());
+        }
+
+        // Botão Salvar Rank
+        const btnSave = document.getElementById('btn-save');
+        if (btnSave) {
+            btnSave.addEventListener('click', () => this.saveScore());
+        }
+
+        // Botão Abrir Rank (se existir)
         const btnOpenRank = document.getElementById('btn-open-rank');
-        if(btnOpenRank) btnOpenRank.addEventListener('click', () => this.openModal());
+        if (btnOpenRank) {
+            btnOpenRank.addEventListener('click', () => this.openModal());
+        }
 
+        // Seletores de Modo (2x2, 3x3, 4x4)
         const modes = [2, 3, 4];
         modes.forEach(size => {
             const btn = document.getElementById(`btn-${size}x${size}`);
@@ -250,11 +253,6 @@ export class Game {
         });
     }
 
-    closeModal() {
-        this.winModal.classList.add('hidden');
-        this.isScrambled = false;
-    }
-
     resetGame() {
         this.stopTimer();
         this.isGameRunning = false;
@@ -262,6 +260,15 @@ export class Game {
         this.timerEl.innerText = "00:00:00";
         this.winModal.classList.add('hidden');
         this.initCube(this.currentSize);
+    }
+
+    // Função de Debug para testar a vitória
+    debugWin() {
+        this.stopTimer();
+        this.timerEl.innerText = "00:59:99"; // Tempo falso
+        document.getElementById('final-time').innerText = this.timerEl.innerText;
+        this.winModal.classList.remove('hidden');
+        if (window.confetti) window.confetti();
     }
 
     handleKeyMove(key, config) {
@@ -273,39 +280,22 @@ export class Game {
         if (config.cols.includes(key)) {
             const idx = config.cols.indexOf(key);
             let rawSlice = getSliceIndex(idx, total);
-
             axis = align.vAxis;
             dir = align.vSign; 
-
             const axisVec = new THREE.Vector3();
-            if(axis === 'x') axisVec.set(1,0,0);
-            if(axis === 'y') axisVec.set(0,1,0);
-            if(axis === 'z') axisVec.set(0,0,1);
-
-            const dot = axisVec.dot(align.camRight);
-            
-            if (dot < 0) rawSlice *= -1;
-
+            axisVec[axis] = 1;
+            if (axisVec.dot(align.camRight) < 0) rawSlice *= -1;
             slice = rawSlice;
         } 
         else if (config.rows.includes(key)) {
             const idx = config.rows.indexOf(key);
             let rawSlice = getSliceIndex(idx, total);
-            
             rawSlice *= -1; 
-
             axis = align.hAxis;
             dir = align.hSign;
-
             const axisVec = new THREE.Vector3();
-            if(axis === 'x') axisVec.set(1,0,0);
-            if(axis === 'y') axisVec.set(0,1,0);
-            if(axis === 'z') axisVec.set(0,0,1);
-
-            const dot = axisVec.dot(align.camUp);
-
-            if (dot < 0) rawSlice *= -1;
-
+            axisVec[axis] = 1;
+            if (axisVec.dot(align.camUp) < 0) rawSlice *= -1;
             slice = rawSlice;
         }
 
@@ -316,15 +306,12 @@ export class Game {
 
     initMouseEvents() {
         window.addEventListener('contextmenu', (e) => e.preventDefault());
-
         const onDown = (e) => {
             if (e.target.closest('button') || e.target.closest('input')) return;
             if (e.button !== 2) return;
-
             this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             this.raycaster.setFromCamera(this.mouse, this.camera);
-            
             const intersects = this.raycaster.intersectObjects(this.cube.group.children, false);
             if (intersects.length > 0) {
                 this.isDragging = true;
@@ -337,39 +324,29 @@ export class Game {
         const onUp = (e) => {
             this.controls.enabled = true; 
             if (e.button !== 2) return; 
-
             if (!this.isDragging || !this.intersectedBone) {
                 this.isDragging = false;
                 return;
             }
-
             const deltaX = e.clientX - this.startMouse.x;
             const deltaY = e.clientY - this.startMouse.y;
-            
             if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-                this.isDragging = false;
-                return;
+                this.isDragging = false; return;
             }
-
             const pos = this.intersectedBone.position;
             const align = this.getVisualAlignment();
-            
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                // Correção Mouse Horizontal: Esquerda->Direita = Rotação positiva visual
                 const visualDir = deltaX > 0 ? 1 : -1;
                 const finalDir = visualDir * align.hSign;
                 this.cube.queueMove(align.hAxis, Math.round(pos[align.hAxis]), finalDir);
-                
             } else {
                 const visualDir = deltaY > 0 ? 1 : -1;
                 const finalDir = visualDir * align.vSign;
                 this.cube.queueMove(align.vAxis, Math.round(pos[align.vAxis]), finalDir);
             }
-
             this.isDragging = false;
             this.intersectedBone = null;
         };
-
         window.addEventListener('mousedown', onDown);
         window.addEventListener('mouseup', onUp);
     }
@@ -392,15 +369,14 @@ export class Game {
 
     scramble() {
         if (this.cube.isAnimating) return;
+        // Reseta qualquer estado anterior
         this.resetGame();
         
-        // Ativa flag de embaralhado
-        this.isScrambled = true;
-
         const axes = ['x', 'y', 'z'];
         const range = (this.currentSize - 1) / 2;
         const possibleSlices = [];
         
+        // Corrige bug de fatias para cubos pares/ímpares
         if (this.currentSize % 2 === 0) {
             for(let i = -range; i <= range; i+=1) possibleSlices.push(i);
         } else {
@@ -408,24 +384,40 @@ export class Game {
         }
         
         const dirs = [1, -1];
+        // Quantidade de movimentos de embaralhamento
         const moves = 20 + (this.currentSize * 5); 
 
         for (let i = 0; i < moves; i++) {
             const ax = axes[Math.floor(Math.random() * axes.length)];
             const sl = possibleSlices[Math.floor(Math.random() * possibleSlices.length)];
             const di = dirs[Math.floor(Math.random() * dirs.length)];
+            // Movimento super rápido (0.05s)
             this.cube.queueMove(ax, sl, di, 0.05); 
         }
-        setTimeout(() => this.startTimer(), moves * 60);
+
+        // Só inicia o timer e marca como "Embaralhado" APÓS a animação terminar
+        setTimeout(() => {
+            this.isScrambled = true; // Agora o checkWin vai começar a funcionar
+            this.startTimer();
+        }, moves * 60); // 60ms é um pouco maior que 50ms (duration) para dar folga
     }
 
+    // Verifica vitória automaticamente
     checkWin() {
-        if (this.isGameRunning && this.isScrambled && (Date.now() - this.startTime > 2000) && this.cube.checkSolved()) {
-            this.stopTimer();
-            this.isScrambled = false; 
-            document.getElementById('final-time').innerText = this.timerEl.innerText;
-            this.winModal.classList.remove('hidden');
-            if (window.confetti) window.confetti();
+        // Só checa se o jogo estiver rodando E o cubo tiver sido embaralhado
+        // Adicionamos um delay mínimo de 1000ms para evitar win instantâneo no start
+        if (this.isGameRunning && this.isScrambled && (Date.now() - this.startTime > 1000)) {
+            if (this.cube.checkSolved()) {
+                this.stopTimer();
+                this.isScrambled = false; // Impede múltiplos disparos
+                
+                // Atualiza UI
+                document.getElementById('final-time').innerText = this.timerEl.innerText;
+                
+                // Mostra Modal e Confetes
+                this.winModal.classList.remove('hidden');
+                if (window.confetti) window.confetti();
+            }
         }
     }
 
@@ -434,7 +426,7 @@ export class Game {
         const time = document.getElementById('final-time').innerText;
         StorageManager.saveScore(name, time);
         this.updateRankingUI();
-        this.closeModal();
+        this.winModal.classList.add('hidden');
     }
 
     updateRankingUI() {
