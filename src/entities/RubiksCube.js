@@ -20,36 +20,29 @@ export class RubiksCube {
 
     init() {
         const geometry = new THREE.BoxGeometry(0.96, 0.96, 0.96);
-        
         const colors = [0xb90000, 0xff5900, 0xffffff, 0xffff00, 0x009b48, 0x0045ad];
-
         const offset = (this.size - 1) / 2;
 
         for (let x = 0; x < this.size; x++) {
             for (let y = 0; y < this.size; y++) {
                 for (let z = 0; z < this.size; z++) {
-                    
                     const adjustedX = x - offset;
                     const adjustedY = y - offset;
                     const adjustedZ = z - offset;
-
                     const materials = [];
-                    
                     const blackMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
-                    materials.push(adjustedX === offset ? new THREE.MeshBasicMaterial({ color: colors[0] }) : blackMat); // Right
-                    materials.push(adjustedX === -offset ? new THREE.MeshBasicMaterial({ color: colors[1] }) : blackMat); // Left
-                    materials.push(adjustedY === offset ? new THREE.MeshBasicMaterial({ color: colors[2] }) : blackMat); // Up
-                    materials.push(adjustedY === -offset ? new THREE.MeshBasicMaterial({ color: colors[3] }) : blackMat); // Down
-                    materials.push(adjustedZ === offset ? new THREE.MeshBasicMaterial({ color: colors[4] }) : blackMat); // Front
-                    materials.push(adjustedZ === -offset ? new THREE.MeshBasicMaterial({ color: colors[5] }) : blackMat); // Back
+                    materials.push(adjustedX === offset ? new THREE.MeshBasicMaterial({ color: colors[0] }) : blackMat);
+                    materials.push(adjustedX === -offset ? new THREE.MeshBasicMaterial({ color: colors[1] }) : blackMat);
+                    materials.push(adjustedY === offset ? new THREE.MeshBasicMaterial({ color: colors[2] }) : blackMat);
+                    materials.push(adjustedY === -offset ? new THREE.MeshBasicMaterial({ color: colors[3] }) : blackMat);
+                    materials.push(adjustedZ === offset ? new THREE.MeshBasicMaterial({ color: colors[4] }) : blackMat);
+                    materials.push(adjustedZ === -offset ? new THREE.MeshBasicMaterial({ color: colors[5] }) : blackMat);
 
                     const mesh = new THREE.Mesh(geometry, materials);
                     mesh.position.set(adjustedX, adjustedY, adjustedZ);
-                    
                     mesh.userData = { 
-                        initialPos: new THREE.Vector3(adjustedX, adjustedY, adjustedZ),
-                        isCubie: true
+                        initialPos: new THREE.Vector3(adjustedX, adjustedY, adjustedZ)
                     };
                     
                     this.group.add(mesh);
@@ -77,7 +70,6 @@ export class RubiksCube {
 
         this.pivot.rotation.set(0, 0, 0);
         this.pivot.position.set(0, 0, 0);
-        
         activeCubes.forEach(c => this.pivot.attach(c));
 
         gsap.to(this.pivot.rotation, {
@@ -102,22 +94,28 @@ export class RubiksCube {
                 });
                 this.isAnimating = false;
                 this.processQueue();
-                if (this.moveQueue.length === 0 && this.onMoveComplete) this.onMoveComplete();
+                
+                if (this.moveQueue.length === 0 && this.onMoveComplete) {
+                    this.onMoveComplete();
+                }
             }
         });
     }
 
     checkSolved() {
-        const epsilon = 0.1;
-        let solved = true;
-        this.cubes.forEach(c => {
-            if (Math.abs(c.position.x - c.userData.initialPos.x) > epsilon ||
-                Math.abs(c.position.y - c.userData.initialPos.y) > epsilon ||
-                Math.abs(c.position.z - c.userData.initialPos.z) > epsilon) {
-                solved = false;
+        const epsilon = 1.5; 
+        const identity = new THREE.Quaternion();
+
+        for (let c of this.cubes) {
+            if (c.position.distanceTo(c.userData.initialPos) > epsilon) {
+                return false;
             }
-        });
-        return solved;
+
+            if (c.quaternion.angleTo(identity) > epsilon) {
+                return false;
+            }
+        }
+        return true;
     }
     
     dispose() {
